@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:orientation="vertical"
+              android:layout_width="fill_parent"
+              android:layout_height="fill_parent">
+
+    <ImageView android:id="@+id/gravatar"
+               android:layout_width="50px"
+               android:layout_height="50px"
+               android:paddingRight="3px"/>
+
+    <TextView android:id="@+id/message"
+              android:orientation="vertical"
+              android:layout_width="wrap_content"
+              android:layout_height="wrap_content"
+              android:singleLine="false"
+              android:textColor="#444444"/>
+
+</LinearLayout>
