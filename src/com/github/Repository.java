@@ -10,6 +10,11 @@ public class Repository {
         this.name = name;
     }
 
+    @Override
+    public String toString() {
+        return owner + "/" + name;
+    }
+
     public String commitsUrl() {
         return "http://github.com/api/v2/json/commits/list/" + owner + "/" + name + "/master";
     }

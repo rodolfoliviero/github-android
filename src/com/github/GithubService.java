@@ -1,9 +1,14 @@
 package com.github;
 
+import android.widget.Toast;
 import org.json.JSONArray;
 import org.json.JSONException;
+import org.json.JSONObject;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import static com.github.HttpRequest.get;
@@ -16,11 +21,11 @@ public class GithubService {
             String repositoriesUrl = "http://github.com/api/v2/json/repos/watched/rodolfoliviero";
             JSONArray repositoriesJson = get(repositoriesUrl).getJSONArray("repositories");
 
-            for (int i = 0; i < 5; i++) {
+            for (int i = 0; i < repositoriesJson.length(); i++) {
                 String name = repositoriesJson.getJSONObject(i).getString("name");
                 String owner = repositoriesJson.getJSONObject(i).getString("owner");
-                Repository repo = new Repository(owner, name);
-                repositories.add(repo);
+                Repository repository = new Repository(owner, name);
+                repositories.add(repository);
             }
 
         } catch (JSONException e) {
@@ -30,7 +35,7 @@ public class GithubService {
         return repositories;
     }
 
-    public List<Feed> searchFeeds() {
+    public List<Feed> searchFeeds(Date lastSearchDate) {
         List<Feed> feeds = new ArrayList<Feed>();
 
         for (Repository repository : searchRepositories()) {
@@ -42,12 +47,25 @@ public class GithubService {
                         break;
                     }
 
-                    String message = commits.getJSONObject(j).getString("message");
-                    String date = commits.getJSONObject(j).getString("committed_date");
-                    String author = commits.getJSONObject(j).getJSONObject("committer").getString("login");
+                    JSONObject commit =  commits.getJSONObject(j);
+                    String message = commit.getString("message");
+                    String date = commit.getString("committed_date");
+                    String author = commit.getJSONObject("committer").getString("login");
 
-                    Feed feed = new Feed(author, message, date, getGravatarID(author));
-                    feeds.add(feed);
+                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+                    try {
+
+                        Date data = sdf.parse(date.substring(0, date.lastIndexOf("-")));
+                        if (data.after(lastSearchDate)) {
+                            Feed feed = new Feed(author, message, date, getGravatarID(author), repository);
+                            feeds.add(feed);
+                        }
+
+                    } catch (ParseException e) {
+                        e.printStackTrace();
+                    }
+
+
                 }
             } catch (JSONException e) {
                 e.printStackTrace();
