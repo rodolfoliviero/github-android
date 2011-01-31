@@ -8,8 +8,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.*;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.text.DateFormat;
 import java.util.*;
 
 public class GithubActivity extends Activity {
@@ -18,13 +17,14 @@ public class GithubActivity extends Activity {
     private final List<View> viewRows = new ArrayList<View>();
     private final GithubService githubService = new GithubService();
     private final Timer timer = new Timer();
-    private Date lastSearchDate;
+    private Date lastSearchDate = new GregorianCalendar(2011, Calendar.JANUARY, 15, 1, 1, 1).getTime();
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
         feeds = (ListView) findViewById(R.id.feeds);
+
         synchronizeFeeds();
     }
 
@@ -33,17 +33,6 @@ public class GithubActivity extends Activity {
 
         TimerTask timerTask = new TimerTask() {
             public void run() {
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
-                try {
-                    if (lastSearchDate == null) {
-                        lastSearchDate = sdf.parse("2011-01-25T01:01:01");
-                    }
-
-                } catch (ParseException e) {
-                    e.printStackTrace();
-                }
-
-
                 final List<Feed> feeds = githubService.searchFeeds(lastSearchDate);
                 lastSearchDate = new Date();
                 final List<View> newViews = createListView(feeds);
@@ -55,7 +44,7 @@ public class GithubActivity extends Activity {
                 });
             }
         };
-        timer.schedule(timerTask, 0, 1000);
+        timer.schedule(timerTask, 0, 1000 * 60 * 2);
     }
 
     private List<View> createListView(List<Feed> feeds) {
@@ -67,8 +56,8 @@ public class GithubActivity extends Activity {
             TextView event = (TextView) view.findViewById(R.id.event);
             TextView message = (TextView) view.findViewById(R.id.message);
             ImageView gravatar = (ImageView) view.findViewById(R.id.gravatar);
-
-            event.setText(feed.getAuthor() + " pushed to master at " + feed.getRepository() + " " + feed.getDate());
+            String date = DateFormat.getDateTimeInstance().format(feed.getDate());
+            event.setText(feed.getAuthor() + " pushed to master at " + feed.getRepository() + " " + date);
             message.setText(feed.getMessage());
             gravatar.setImageBitmap(feed.getGravatar());
 
