@@ -1,7 +1,8 @@
-package com.github;
+package com.github.model;
+
+import com.github.util.Utils;
 
 public class Repository {
-
     private String owner;
     private String name;
 
@@ -16,6 +17,6 @@ public class Repository {
     }
 
     public String commitsUrl() {
-        return "http://github.com/api/v2/json/commits/list/" + owner + "/" + name + "/master";
+        return Utils.URL_COMMITS + owner + "/" + name + "/master";
     }
 }
