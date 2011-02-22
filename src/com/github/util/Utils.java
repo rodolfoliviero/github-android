@@ -1,5 +1,8 @@
 package com.github.util;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Collections;
@@ -24,6 +27,8 @@ public class Utils {
 	
 	public static final String URL_WATCHED = "http://github.com/api/v2/json/repos/watched/";
 		
+	public static final String URL_GRAVATAR = "http://www.gravatar.com/avatar/";
+	
 	/**
 	 * 
 	 * @param data
@@ -51,5 +56,29 @@ public class Utils {
 				
 			}
 		});
+	}
+	
+	/**
+	 * 
+	 * @param inputStream
+	 * @return
+	 * @throws IOException
+	 */
+	public static byte[] readBytes(InputStream inputStream) throws IOException {
+		// this dynamically extends to take the bytes you read
+		final ByteArrayOutputStream byteBuffer = new ByteArrayOutputStream();
+
+		// this is storage overwritten on each iteration with bytes
+		final int bufferSize = 1024;
+		final byte[] buffer = new byte[bufferSize];
+
+		// we need to know how may bytes were read to write them to the byteBuffer
+		int len = 0;
+		while ((len = inputStream.read(buffer)) != -1) {
+			byteBuffer.write(buffer, 0, len);
+		}
+
+		// and then we can return your byte array.
+		return byteBuffer.toByteArray();
 	}
 }

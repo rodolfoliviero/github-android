@@ -7,6 +7,7 @@ import java.text.DateFormat;
 import java.util.List;
 
 import android.content.Context;
+import android.graphics.BitmapFactory;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -87,13 +88,10 @@ public class FeedListaAdapter extends BaseAdapter {
 
 		event.setText(feed.getCommit().getAuthor() + " pushed to master at " + feed.getRepository() + " " + date);
 		message.setText(feed.getCommit().getMessage());
-		/*gravatar.setImageBitmap(feed.getCommit().getGravatar());
-
-
-
-		byte[] buf = bloq.getContato().getImagem();
-		imagem.setImageBitmap(BitmapFactory.decodeByteArray(buf, 0, buf.length));*/
-
+		
+		final byte[] buf = feed.getImagem();
+		gravatar.setImageBitmap(BitmapFactory.decodeByteArray(buf, 0, buf.length));
+		
 		return view;
 	}
 }

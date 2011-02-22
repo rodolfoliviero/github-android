@@ -144,7 +144,7 @@ public class JsonGit {
 	public String obterString(JSONObject jsonUser) {
 		
 		try {
-			return jsonUser.getString(GRAVATAR_ID);
+			return jsonUser.getJSONObject(USER).getString(GRAVATAR_ID);
 		
 		} catch (JSONException e) {
 			LogManager.e(Utils.NOME_LOG, e.getMessage(), e);

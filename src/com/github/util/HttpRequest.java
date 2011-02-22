@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.URL;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.client.ClientProtocolException;
@@ -16,7 +17,7 @@ import org.json.JSONObject;
 import br.pelom.android.utils.LogManager;
 
 public class HttpRequest {
-	
+
 	/**
 	 * 
 	 * @param url
@@ -26,7 +27,7 @@ public class HttpRequest {
 	public JSONObject urlToJson(String url) {
 
 		JSONObject json = null;
-			
+
 		try {
 			//criar entrada de dados.
 			final InputStream in = readUrl(url);
@@ -34,16 +35,16 @@ public class HttpRequest {
 			final String stringUrl = obterString(in);
 			//criar objeto json
 			json = new JSONObject(stringUrl);
-			
+
 		} catch (JSONException e) {
 			LogManager.e(Utils.NOME_LOG, e.getMessage(), e);
-			
+
 		} catch (ClientProtocolException e) {
 			LogManager.e(Utils.NOME_LOG, e.getMessage(), e);
-			
+
 		} catch (IOException e) {
 			LogManager.e(Utils.NOME_LOG, e.getMessage(), e);
-		
+
 		}
 
 		return json;
@@ -87,5 +88,25 @@ public class HttpRequest {
 		}
 
 		return sb.toString();
+	}
+
+	/**
+	 * 
+	 * @param gravatarID
+	 * @return
+	 * @throws IOException
+	 */
+	public byte[] obterGravatar(String gravatarID) throws IOException {
+		URL url = new URL(Utils.URL_GRAVATAR + gravatarID);
+
+		InputStream inputStream = url.openStream();
+
+		final byte[] buf = Utils.readBytes(inputStream);
+		
+		if(inputStream != null) {
+			inputStream.close();
+		}
+		
+		return buf;
 	}
 }

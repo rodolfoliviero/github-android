@@ -1,9 +1,5 @@
 package com.github.model;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.net.URL;
 
 
 /**
@@ -12,10 +8,13 @@ import java.net.URL;
 public class Feed {
 
 	private Repository repository;
-	
+
 	/** Commit **/
 	private Commit commit = null;
-	
+
+	/** Imagem do usuario **/
+	private byte[] imagem = null;
+
 	/**
 	 * 
 	 * @param author
@@ -27,10 +26,9 @@ public class Feed {
 	public Feed(Commit commit, Repository repository) {
 		this.commit = commit;
 		this.repository = repository;
-		//decodeGravatar(gravatarID);
 	}
 
-	
+
 
 	/**
 	 * @return the repository
@@ -64,19 +62,22 @@ public class Feed {
 		this.commit = commit;
 	}
 
+
+
 	/**
-	 * 
-	 * @param gravatarID
+	 * @return the imagem
 	 */
-	private void decodeGravatar(String gravatarID) {
-		try {
-			URL url = new URL("http://www.gravatar.com/avatar/" + gravatarID);
-			InputStream stream = url.openStream();
-			//gravatar = BitmapFactory.decodeStream(stream);
-		} catch (MalformedURLException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+	public byte[] getImagem() {
+		return imagem;
 	}
+
+
+
+	/**
+	 * @param imagem the imagem to set
+	 */
+	public void setImagem(byte[] imagem) {
+		this.imagem = imagem;
+	}
+
 }

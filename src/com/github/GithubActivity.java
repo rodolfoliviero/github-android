@@ -1,5 +1,6 @@
 package com.github;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -12,6 +13,7 @@ import org.json.JSONObject;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.view.Window;
 import android.widget.ListView;
 import android.widget.Toast;
 import br.pelom.android.utils.LogManager;
@@ -36,6 +38,9 @@ public class GithubActivity extends Activity {
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+
+		requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
+		setProgressBarIndeterminateVisibility(false);
 
 		setContentView(R.layout.main);
 
@@ -82,6 +87,8 @@ public class GithubActivity extends Activity {
 
 		@Override
 		public void run() {
+			setProgressBarIndeterminateVisibility(true);
+
 			LogManager.i(Utils.NOME_LOG, "iniciando a buscar por feeds url:" + urlRepositorio);
 
 			if(urlRepositorio == null) return;
@@ -100,7 +107,8 @@ public class GithubActivity extends Activity {
 			LogManager.i(Utils.NOME_LOG, "numero de repositorios:" + listRepository.size());
 
 			int size = listRepository.size();
-			final List<Feed> tempListaFeeds = new ArrayList<Feed>();
+
+			listaFeeds.clear();
 
 			for (int i = 0; i < size; i++) {
 				Repository repositorio = listRepository.get(i);
@@ -120,26 +128,53 @@ public class GithubActivity extends Activity {
 					Commit commit = listCommits.get(j);
 
 					if (commit.getData().after(dataUltimaVeri)) {
+
+						//criar feeds
 						Feed feed = new Feed(commit, repositorio);
-						tempListaFeeds.add(feed);
+						//carregar imagem
+						carregarImagemUsuario(feed);
+						//add a lista
+						listaFeeds.add(feed);
+
+						runOnUiThread(new Runnable() {
+							public void run() {
+								listaAdapter.notifyDataSetChanged();
+							}
+						});
 					}
 				}
 			}
 
-			Toast.makeText(GithubActivity.this, tempListaFeeds.size() + " new feeds", Toast.LENGTH_SHORT).show();
-			
-			LogManager.i(Utils.NOME_LOG, "atualizar lista:" + tempListaFeeds.size());
-
-
+			LogManager.i(Utils.NOME_LOG, "atualizar lista:" + listaFeeds.size());
 			runOnUiThread(new Runnable() {
 				public void run() {
-					listaFeeds.clear();
-					listaFeeds.addAll(tempListaFeeds);
+					Toast.makeText(GithubActivity.this, "Total new feeds:" + listaFeeds.size(), Toast.LENGTH_SHORT).show();
+					setProgressBarIndeterminateVisibility(false);
 
+					Utils.ordenarPorDateCommit(listaFeeds);
 					listaAdapter.notifyDataSetChanged();
 				}
 			});
+
+		}
+
+		/**
+		 * 
+		 * @param feed
+		 */
+		private void carregarImagemUsuario(Feed feed) {
+			final JSONObject jsonUser = 
+				request.urlToJson(Utils.URL_USER + feed.getCommit().getAuthor());
+
+			String urlImage = jsonGit.obterString(jsonUser);
+
+			try {
+				feed.setImagem(request.obterGravatar(urlImage));
+
+			} catch (IOException e) {
+				LogManager.e(Utils.NOME_LOG, e.getMessage(), e);
+
+			}
 		}
 	}
-
 }
