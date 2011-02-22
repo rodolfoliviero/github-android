@@ -87,8 +87,12 @@ public class GithubActivity extends Activity {
 
 		@Override
 		public void run() {
-			setProgressBarIndeterminateVisibility(true);
-
+			runOnUiThread(new Runnable() {
+				public void run() {
+					setProgressBarIndeterminateVisibility(true);
+				}
+			});
+			
 			LogManager.i(Utils.NOME_LOG, "iniciando a buscar por feeds url:" + urlRepositorio);
 
 			if(urlRepositorio == null) return;
