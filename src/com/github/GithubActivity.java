@@ -1,79 +1,184 @@
 package com.github;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
+import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
+
+import org.json.JSONObject;
+
 import android.app.Activity;
-import android.content.Context;
 import android.os.Bundle;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.*;
+import android.view.Window;
+import android.widget.ListView;
+import android.widget.Toast;
+import br.pelom.android.utils.LogManager;
 
-import java.text.DateFormat;
-import java.util.*;
+import com.github.adapter.FeedListaAdapter;
+import com.github.model.Commit;
+import com.github.model.Feed;
+import com.github.model.Repository;
+import com.github.util.HttpRequest;
+import com.github.util.JsonGit;
+import com.github.util.Utils;
 
+/** 
+ * @author pelom
+ */
 public class GithubActivity extends Activity {
 
-    private ListView feeds;
-    private final List<View> viewRows = new ArrayList<View>();
-    private final GithubService githubService = new GithubService();
-    private final Timer timer = new Timer();
-    private Date lastSearchDate = new GregorianCalendar(2011, Calendar.JANUARY, 15, 1, 1, 1).getTime();
+	private FeedListaAdapter listaAdapter = null;
+	private List<Feed> listaFeeds = null;
+	private final Timer timer = new Timer();
 
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.main);
-        feeds = (ListView) findViewById(R.id.feeds);
+	@Override
+	public void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
 
-        synchronizeFeeds();
-    }
+		requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
+		setProgressBarIndeterminateVisibility(false);
 
-    private void synchronizeFeeds() {
-        Toast.makeText(this, "retrieving feeds", Toast.LENGTH_LONG).show();
+		setContentView(R.layout.main);
 
-        TimerTask timerTask = new TimerTask() {
-            public void run() {
-                final List<Feed> feeds = githubService.searchFeeds(lastSearchDate);
-                lastSearchDate = new Date();
-                final List<View> newViews = createListView(feeds);
+		this.listaFeeds = new ArrayList<Feed>();
+		ListView listView = (ListView) findViewById(R.id.feeds);
 
-                runOnUiThread(new Runnable() {
-                    public void run() {
-                        fillScreen(newViews);
-                    }
-                });
-            }
-        };
-        timer.schedule(timerTask, 0, 1000 * 60 * 2);
-    }
+		this.listaAdapter = new FeedListaAdapter(listaFeeds, this); 
+		listView.setAdapter(listaAdapter);
 
-    private List<View> createListView(List<Feed> feeds) {
-        LayoutInflater layoutInflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-        List<View> listView = new ArrayList<View>();
+		synchronizeFeeds();
+	}
 
-        for (Feed feed : feeds) {
-            View view = layoutInflater.inflate(R.layout.feed, null);
-            TextView event = (TextView) view.findViewById(R.id.event);
-            TextView message = (TextView) view.findViewById(R.id.message);
-            ImageView gravatar = (ImageView) view.findViewById(R.id.gravatar);
-            String date = DateFormat.getDateTimeInstance().format(feed.getDate());
-            event.setText(feed.getAuthor() + " pushed to master at " + feed.getRepository() + " " + date);
-            message.setText(feed.getMessage());
-            gravatar.setImageBitmap(feed.getGravatar());
+	private void synchronizeFeeds() {
+		Toast.makeText(this, "retrieving feeds", Toast.LENGTH_LONG).show();
 
-            listView.add(view);
-        }
+		timer.schedule(new SearchFeed(
+		"http://github.com/api/v2/json/repos/watched/JoseRibeiro"), 0, 1000 * 60 * 2);
+	}
 
-        return listView;
-    }
+	/**
+	 * @author pelom
+	 */
+	private class SearchFeed extends TimerTask {
 
-    private void fillScreen(final List<View> newViews) {
-        Toast.makeText(this, newViews.size() + " new feeds", Toast.LENGTH_SHORT).show();
-        viewRows.addAll(0, newViews);
-        feeds.setAdapter(new ArrayAdapter<View>(this, android.R.layout.simple_list_item_1, viewRows) {
-            public View getView(int position, View convertView, ViewGroup parent) {
-                return viewRows.get(position);
-            }
-        });
-    }
+		/** Objeto http para realizar a conexao com a internet **/
+		private HttpRequest request = null;
+
+		/** url do git hub do usuario **/
+		private String urlRepositorio = null;
+
+		private JsonGit jsonGit = null;
+
+		/** Data da ultima verificacao **/
+		private Date dataUltimaVeri = null;
+		/**
+		 * 
+		 */
+		public SearchFeed(String urlRepositorio) {
+			request = new HttpRequest();
+			jsonGit = new JsonGit();
+			this.urlRepositorio = urlRepositorio;
+			dataUltimaVeri = new GregorianCalendar(2011, Calendar.JANUARY, 15, 1, 1, 1).getTime(); 
+		}
+
+		@Override
+		public void run() {
+			runOnUiThread(new Runnable() {
+				public void run() {
+					setProgressBarIndeterminateVisibility(true);
+				}
+			});
+			
+			LogManager.i(Utils.NOME_LOG, "iniciando a buscar por feeds url:" + urlRepositorio);
+
+			if(urlRepositorio == null) return;
+
+			final JSONObject jsonRepositorio = request.urlToJson(urlRepositorio);
+			if(jsonRepositorio == null) {
+				return;
+			}
+
+			List<Repository> listRepository = jsonGit.obterListRepositorios(jsonRepositorio);
+
+			if(listRepository.size() == 0) {
+				return;
+			}
+
+			LogManager.i(Utils.NOME_LOG, "numero de repositorios:" + listRepository.size());
+
+			int size = listRepository.size();
+
+			listaFeeds.clear();
+
+			for (int i = 0; i < size; i++) {
+				Repository repositorio = listRepository.get(i);
+				String urlCommit = repositorio.commitsUrl();
+
+				final JSONObject jsonCommit = request.urlToJson(urlCommit);
+				if(jsonCommit == null) {
+					continue;
+				}
+
+				List<Commit> listCommits = jsonGit.obterListCommit(jsonCommit);
+
+				LogManager.i(Utils.NOME_LOG, "numero de commits:" + listCommits.size());
+
+				int sizeCommit = listCommits.size();
+				for (int j = 0; j < sizeCommit; j++) {
+					Commit commit = listCommits.get(j);
+
+					if (commit.getData().after(dataUltimaVeri)) {
+
+						//criar feeds
+						Feed feed = new Feed(commit, repositorio);
+						//carregar imagem
+						carregarImagemUsuario(feed);
+						//add a lista
+						listaFeeds.add(feed);
+
+						runOnUiThread(new Runnable() {
+							public void run() {
+								listaAdapter.notifyDataSetChanged();
+							}
+						});
+					}
+				}
+			}
+
+			LogManager.i(Utils.NOME_LOG, "atualizar lista:" + listaFeeds.size());
+			runOnUiThread(new Runnable() {
+				public void run() {
+					Toast.makeText(GithubActivity.this, "Total new feeds:" + listaFeeds.size(), Toast.LENGTH_SHORT).show();
+					setProgressBarIndeterminateVisibility(false);
+
+					Utils.ordenarPorDateCommit(listaFeeds);
+					listaAdapter.notifyDataSetChanged();
+				}
+			});
+
+		}
+
+		/**
+		 * 
+		 * @param feed
+		 */
+		private void carregarImagemUsuario(Feed feed) {
+			final JSONObject jsonUser = 
+				request.urlToJson(Utils.URL_USER + feed.getCommit().getAuthor());
+
+			String urlImage = jsonGit.obterString(jsonUser);
+
+			try {
+				feed.setImagem(request.obterGravatar(urlImage));
+
+			} catch (IOException e) {
+				LogManager.e(Utils.NOME_LOG, e.getMessage(), e);
+
+			}
+		}
+	}
 }
